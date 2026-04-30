@@ -39,7 +39,7 @@ The student will use NST-Cloud to:
 
 ## Product Scope
 
-NST-Cloud is an internal platform-as-a-service for NST.
+NST-Cloud is an internal platform-as-a-service for NST-ADYPU.
 
 ### Supported responsibilities
 
@@ -187,9 +187,8 @@ When a student submits deployment details, the system should follow this sequenc
 
 ### Backend
 
-- Node.js
-- Express.js or NestJS
-- TypeScript
+- Golang
+- Standard library or framework (e.g., Echo, Gin)
 
 ### Infrastructure
 
@@ -238,33 +237,32 @@ nst-cloud/
 │   │   │   └── styles/
 │   │   └── public/
 │   ├── api/
-│   │   ├── package.json
-│   │   ├── tsconfig.json
-│   │   ├── src/
-│   │   │   ├── index.ts
-│   │   │   ├── app.ts
+│   │   ├── Makefile
+│   │   ├── go.mod
+│   │   ├── cmd/
+│   │   │   └── server/
+│   │   │       └── main.go
+│   │   ├── internal/
 │   │   │   ├── config/
-│   │   │   ├── modules/
-│   │   │   │   ├── auth/
-│   │   │   │   ├── users/
-│   │   │   │   ├── projects/
-│   │   │   │   ├── deployments/
-│   │   │   │   ├── github/
-│   │   │   │   ├── logs/
-│   │   │   │   ├── health/
-│   │   │   │   └── admin/
+│   │   │   ├── handlers/
 │   │   │   ├── middleware/
-│   │   │   ├── utils/
-│   │   │   └── types/
+│   │   │   ├── models/
+│   │   │   ├── repository/
+│   │   │   └── services/
+│   │   └── pkg/
+│   │       └── utils/
 │   └── worker/
-│       ├── package.json
-│       ├── tsconfig.json
-│       └── src/
-│           ├── index.ts
-│           ├── jobs/
-│           ├── docker/
-│           ├── github/
-│           ├── health/
+│       ├── Makefile
+│       ├── go.mod
+│       ├── cmd/
+│       │   └── worker/
+│       │       └── main.go
+│       ├── internal/
+│       │   ├── config/
+│       │   ├── docker/
+│       │   ├── github/
+│       │   └── jobs/
+│       └── pkg/
 │           └── utils/
 ├── packages/
 │   ├── ui/

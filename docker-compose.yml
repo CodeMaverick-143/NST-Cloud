@@ -1,0 +1,113 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+    ports:
+      - "80:80"
+      - "8080:8080" # Traefik dashboard
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./infra/traefik/dynamic:/etc/traefik/dynamic:ro"
+    networks:
+      - nst-cloud-net
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: nst-cloud-db
+    environment:
+      POSTGRES_USER: nstcloud
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: nst_cloud
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - nst-cloud-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nstcloud -d nst_cloud"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: nst-cloud-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - nst-cloud-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: nst-cloud-api
+    environment:
+      - DATABASE_URL=postgres://nstcloud:password@postgres:5432/nst_cloud?sslmode=disable
+      - REDIS_URL=redis:6379
+      - PORT=4000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`api.nstcloud.local`)"
+      - "traefik.http.services.api.loadbalancer.server.port=4000"
+    networks:
+      - nst-cloud-net
+
+  worker:
+    build:
+      context: ./apps/worker
+      dockerfile: Dockerfile
+    container_name: nst-cloud-worker
+    environment:
+      - DATABASE_URL=postgres://nstcloud:password@postgres:5432/nst_cloud?sslmode=disable
+      - REDIS_URL=redis:6379
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - nst-cloud-net
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: nst-cloud-web
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api.nstcloud.local
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.web.rule=Host(`nstcloud.local`)"
+      - "traefik.http.services.web.loadbalancer.server.port=3000"
+    networks:
+      - nst-cloud-net
+
+volumes:
+  pgdata:
+
+networks:
+  nst-cloud-net:
+    driver: bridge
